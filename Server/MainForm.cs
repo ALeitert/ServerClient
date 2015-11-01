@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -81,6 +77,7 @@ namespace Server
                     ClientHandler ch = new ClientHandler(listenerSocket.Accept());
                     ch.DataRecieved += Client_DataRecieved;
                     clientList.Add(ch);
+                    Log("Client connected.");
                 }
                 catch (SocketException)
                 {
@@ -92,6 +89,8 @@ namespace Server
 
         private void Log(string text)
         {
+            if (txtLog.IsDisposed) return;
+
             if (txtLog.InvokeRequired)
             {
                 txtLog.Invoke(new LogDelegate(Log), new object[] { text });
@@ -104,16 +103,34 @@ namespace Server
 
         private void btnStopServer_Click(object sender, EventArgs e)
         {
-            if (listenerSocket != null)
-            {
-                listenerSocket.Close();
-            }
+            StopServer();
         }
 
         private void Client_DataRecieved(object sender, DataRecievedArgs e)
         {
-            string msg = Encoding.Default.GetString(e.Data);
-            Log(msg);
+            string msg = Encoding.Default.GetString(e.Data, 0, e.Length);
+            Log("Client: "+ msg);
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            StopServer();
+        }
+
+        private void StopServer()
+        {
+            if (listenerSocket != null)
+            {
+                listenerSocket.Close();
+            }
+
+            foreach (ClientHandler ch in clientList)
+            {
+                if (ch.clientSocket != null)
+                {
+                    ch.clientSocket.Close();
+                }
+            }
         }
     }
 }

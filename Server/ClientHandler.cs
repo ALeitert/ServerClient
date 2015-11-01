@@ -64,6 +64,7 @@ namespace Server
                 catch (SocketException ex)
                 {
                     Console.WriteLine("Client Disconnected.");
+                    break;
                 }
             }
         }
