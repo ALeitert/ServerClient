@@ -6,7 +6,7 @@ using System.Threading;
 
 
 
-namespace client
+namespace ConsoleClient
 {
     class Program
     {
