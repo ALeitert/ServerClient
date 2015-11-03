@@ -4,14 +4,14 @@ using System.Threading;
 
 namespace Server
 {
-    public delegate void DataRecievedEventHandler(object sender, DataRecievedArgs e);
+    public delegate void DataReceivedEventHandler(object sender, DataReceivedArgs e);
 
-    public class DataRecievedArgs : EventArgs
+    public class DataReceivedArgs : EventArgs
     {
         public byte[] Data { get; protected set; }
         public int Length { get; protected set; }
 
-        public DataRecievedArgs(byte[] data, int length)
+        public DataReceivedArgs(byte[] data, int length)
         {
             Data = data;
             Length = length;
@@ -25,7 +25,7 @@ namespace Server
         public Thread clientThread;
         public string id;
 
-        public event DataRecievedEventHandler DataRecieved;
+        public event DataReceivedEventHandler DataReceived;
 
         public ClientHandler(Socket clientSocket)
         {
@@ -55,9 +55,9 @@ namespace Server
 
                     if (readBytes > 0)
                     {
-                        if (DataRecieved != null)
+                        if (DataReceived != null)
                         {
-                            DataRecieved(this, new DataRecievedArgs(buffer, readBytes));
+                            DataReceived(this, new DataReceivedArgs(buffer, readBytes));
                         }
                     }
                 }

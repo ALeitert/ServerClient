@@ -9,13 +9,15 @@ using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
 
+using ServerData;
+
 namespace Client
 {
     public partial class ClientForm : Form
     {
         private Socket master;
-        private string name;
-        private string id;
+
+        private SocketConnection connection;
 
         private delegate void LogDelegate(string text);
 
@@ -57,20 +59,27 @@ namespace Client
                 Log("Could not connect to server.");
             }
 
+            connection = new SocketConnection(master);
+
         }
 
         private void btnSend_Click(object sender, EventArgs e)
         {
             try
             {
-                if (master != null)
+                if (connection != null)
                 {
                     string msg = txtMsg.Text;
                     byte[] data = Encoding.Default.GetBytes(msg);
 
-                    master.Send(data);
-
-                    txtMsg.Text = string.Empty;
+                    if (!connection.SendMessage(data))
+                    {
+                        Log("Unable to send message.");
+                    }
+                    else
+                    {
+                        txtMsg.Text = string.Empty;
+                    }
                 }
             }
             catch (SocketException)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerData;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -13,7 +14,7 @@ namespace Server
         private delegate void LogDelegate(string text);
 
         private Socket listenerSocket;
-        private List<ClientHandler> clientList; // ToDo: HashTable
+        private List<SocketConnection> clientList; // ToDo: HashTable
 
         private IPAddress selectedIP;
 
@@ -46,7 +47,7 @@ namespace Server
         {
             Log("Starting Server...");
             listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientList = new List<ClientHandler>();
+            clientList = new List<SocketConnection>();
 
             try
             {
@@ -74,9 +75,9 @@ namespace Server
                 {
                     listenerSocket.Listen(0);
 
-                    ClientHandler ch = new ClientHandler(listenerSocket.Accept());
-                    ch.DataRecieved += Client_DataRecieved;
-                    clientList.Add(ch);
+                    SocketConnection sc = new SocketConnection(listenerSocket.Accept());
+                    sc.MessageReceived += Socket_MessageReceived;
+                    clientList.Add(sc);
                     Log("Client connected.");
                 }
                 catch (SocketException)
@@ -106,9 +107,9 @@ namespace Server
             StopServer();
         }
 
-        private void Client_DataRecieved(object sender, DataRecievedArgs e)
+        private void Socket_MessageReceived(object sender, MessageReceivedArgs e)
         {
-            string msg = Encoding.Default.GetString(e.Data, 0, e.Length);
+            string msg = Encoding.Default.GetString(e.RawMessage);
             Log("Client: "+ msg);
         }
 
@@ -124,12 +125,12 @@ namespace Server
                 listenerSocket.Close();
             }
 
-            foreach (ClientHandler ch in clientList)
+            foreach (SocketConnection ch in clientList)
             {
-                if (ch.clientSocket != null)
-                {
-                    ch.clientSocket.Close();
-                }
+                //if (ch.clientSocket != null)
+                //{
+                //    ch.clientSocket.Close();
+                //}
             }
         }
     }
