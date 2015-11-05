@@ -17,7 +17,7 @@ namespace Client
     {
         private Socket master;
 
-        private SocketConnection connection;
+        private CryptoConnection connection;
 
         private delegate void LogDelegate(string text);
 
@@ -59,7 +59,7 @@ namespace Client
                 Log("Could not connect to server.");
             }
 
-            connection = new SocketConnection(master);
+            connection = new CryptoConnection(master, CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
 
         }
 

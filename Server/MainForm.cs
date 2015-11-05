@@ -14,7 +14,7 @@ namespace Server
         private delegate void LogDelegate(string text);
 
         private Socket listenerSocket;
-        private List<SocketConnection> clientList; // ToDo: HashTable
+        private List<CryptoConnection> clientList; // ToDo: HashTable
 
         private IPAddress selectedIP;
 
@@ -47,7 +47,7 @@ namespace Server
         {
             Log("Starting Server...");
             listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientList = new List<SocketConnection>();
+            clientList = new List<CryptoConnection>();
 
             try
             {
@@ -75,7 +75,7 @@ namespace Server
                 {
                     listenerSocket.Listen(0);
 
-                    SocketConnection sc = new SocketConnection(listenerSocket.Accept());
+                    CryptoConnection sc = new CryptoConnection(listenerSocket.Accept(), CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
                     sc.MessageReceived += Socket_MessageReceived;
                     clientList.Add(sc);
                     Log("Client connected.");
@@ -125,7 +125,7 @@ namespace Server
                 listenerSocket.Close();
             }
 
-            foreach (SocketConnection ch in clientList)
+            foreach (CryptoConnection ch in clientList)
             {
                 //if (ch.clientSocket != null)
                 //{
