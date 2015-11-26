@@ -14,36 +14,16 @@ namespace ServerData
 
         public static byte[] EncryptData(byte[] input, byte[] key, byte[] iv)
         {
-
             RijndaelManaged managed = new RijndaelManaged();
-
-            managed.Key = key;
-            managed.IV = iv;
-
-            MemoryStream output = new MemoryStream();
-            CryptoStream cryptoStr = new CryptoStream(output, managed.CreateEncryptor(), CryptoStreamMode.Write);
-
-            cryptoStr.Write(input, 0, input.Length);
-            cryptoStr.FlushFinalBlock();
-
-            return output.ToArray();
+            var enc = managed.CreateEncryptor(key, iv);
+            return enc.TransformFinalBlock(input, 0, input.Length);
         }
 
         public static byte[] DecryptData(byte[] input, byte[] key, byte[] iv)
         {
-
             RijndaelManaged managed = new RijndaelManaged();
-
-            managed.Key = key;
-            managed.IV = iv;
-
-            MemoryStream output = new MemoryStream();
-            CryptoStream cryptoStr = new CryptoStream(output, managed.CreateDecryptor(), CryptoStreamMode.Write);
-
-            cryptoStr.Write(input, 0, input.Length);
-            cryptoStr.Close();
-
-            return output.ToArray();
+            var dec = managed.CreateDecryptor(key, iv);
+            return dec.TransformFinalBlock(input, 0, input.Length);
         }
 
     }
