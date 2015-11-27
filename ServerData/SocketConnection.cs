@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace ServerData
@@ -14,8 +11,14 @@ namespace ServerData
         private Thread listenThread;
 
         public event MessageReceivedEventHandler MessageReceived;
+        public event EventHandler ConnectionEnded;
 
         public SocketConnection(Socket socket)
+            : this(socket, true)
+        {
+        }
+
+        protected SocketConnection(Socket socket, bool startListening)
         {
             if (socket == null)
             {
@@ -26,11 +29,13 @@ namespace ServerData
 
             this.socket = socket;
 
-            listenThread = new Thread(Listen);
-            listenThread.Start();
+            if (startListening)
+            {
+                StartListening();
+            }
         }
 
-        public bool SendMessage(byte[] message)
+        public virtual bool SendMessage(byte[] message)
         {
             if (message == null)
             {
@@ -68,6 +73,28 @@ namespace ServerData
             }
         }
 
+        public void Close()
+        {
+            if (socket != null)
+            {
+                socket.Close();
+            }
+        }
+
+        protected void StartListening()
+        {
+            listenThread = new Thread(Listen);
+            listenThread.Start();
+        }
+
+        protected virtual void OnMessageReceived(MessageReceivedEventArgs e)
+        {
+            if (MessageReceived != null)
+            {
+                MessageReceived(this, e);
+            }
+        }
+
         private void Listen()
         {
             while (true)
@@ -91,14 +118,16 @@ namespace ServerData
                         bytesRead += socket.Receive(message, bytesRead, msgLength - bytesRead, SocketFlags.None);
                     }
 
-                    if (MessageReceived != null)
-                    {
-                        MessageReceived(this, new MessageReceivedEventArgs(message));
-                    }
+                    OnMessageReceived(new MessageReceivedEventArgs(message));
                 }
                 catch (SocketException)
                 {
                     // ToDo: Handle exception.
+                    socket.Close();
+                    if (ConnectionEnded != null)
+                    {
+                        ConnectionEnded(this, new EventArgs());
+                    }
                     break;
                 }
             }
