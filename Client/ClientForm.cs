@@ -57,6 +57,7 @@ namespace Client
             catch
             {
                 Log("Could not connect to server.");
+                return;
             }
 
             connection = new CryptoConnection(master, CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
@@ -85,6 +86,14 @@ namespace Client
             catch (SocketException)
             {
                 Log("Unable to send message.");
+            }
+        }
+
+        private void ClientForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (connection != null)
+            {
+                connection.Close();
             }
         }
     }

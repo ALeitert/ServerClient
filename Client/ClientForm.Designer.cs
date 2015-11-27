@@ -101,6 +101,7 @@
             this.Controls.Add(this.btnConnect);
             this.Name = "ClientForm";
             this.Text = "Client";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ClientForm_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
 

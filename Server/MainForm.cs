@@ -77,6 +77,7 @@ namespace Server
 
                     CryptoConnection sc = new CryptoConnection(listenerSocket.Accept(), CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
                     sc.MessageReceived += Socket_MessageReceived;
+                    sc.ConnectionEnded += Socket_ConnectionEnded;
                     clientList.Add(sc);
                     Log("Client connected.");
                 }
@@ -110,7 +111,13 @@ namespace Server
         private void Socket_MessageReceived(object sender, MessageReceivedEventArgs e)
         {
             string msg = Encoding.Default.GetString(e.RawMessage);
-            Log("Client: "+ msg);
+            Log("Client: " + msg);
+        }
+
+        private void Socket_ConnectionEnded(object sender, EventArgs e)
+        {
+            clientList.Remove((CryptoConnection)sender);
+            Log("Client Disconnected");
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -125,12 +132,12 @@ namespace Server
                 listenerSocket.Close();
             }
 
-            foreach (CryptoConnection ch in clientList)
+            foreach (CryptoConnection cc in clientList)
             {
-                //if (ch.clientSocket != null)
-                //{
-                //    ch.clientSocket.Close();
-                //}
+                if (cc != null)
+                {
+                    cc.Close();
+                }
             }
         }
     }

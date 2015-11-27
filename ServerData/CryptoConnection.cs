@@ -10,7 +10,6 @@ namespace ServerData
     public class CryptoConnection
     {
         private Socket socket;
-        private NetworkStream netStream;
 
         byte[] key;
         byte[] iv;
@@ -18,6 +17,7 @@ namespace ServerData
         private Thread listenThread;
 
         public event MessageReceivedEventHandler MessageReceived;
+        public event EventHandler ConnectionEnded;
 
         public CryptoConnection(Socket socket, byte[] key, byte[] iv)
         {
@@ -32,7 +32,6 @@ namespace ServerData
             this.iv = iv;
 
             this.socket = socket;
-            netStream = new NetworkStream(socket);
 
             listenThread = new Thread(Listen);
             listenThread.Start();
@@ -80,13 +79,20 @@ namespace ServerData
             }
         }
 
+        public void Close()
+        {
+            if (socket != null)
+            {
+                socket.Close();
+            }
+        }
+
         private void Listen()
         {
             while (true)
             {
                 try
                 {
-
                     // Read a message-length
                     byte[] header = new byte[4];
 
@@ -114,6 +120,11 @@ namespace ServerData
                 catch (SocketException)
                 {
                     // ToDo: Handle exception.
+                    socket.Close();
+                    if (ConnectionEnded != null)
+                    {
+                        ConnectionEnded(this, new EventArgs());
+                    }
                     break;
                 }
             }
