@@ -108,7 +108,7 @@ namespace ServerData
 
                     if (MessageReceived != null)
                     {
-                        MessageReceived(this, new MessageReceivedArgs(msg));
+                        MessageReceived(this, new MessageReceivedEventArgs(msg));
                     }
                 }
                 catch (SocketException)

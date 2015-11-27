@@ -93,7 +93,7 @@ namespace ServerData
 
                     if (MessageReceived != null)
                     {
-                        MessageReceived(this, new MessageReceivedArgs(message));
+                        MessageReceived(this, new MessageReceivedEventArgs(message));
                     }
                 }
                 catch (SocketException)

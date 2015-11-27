@@ -107,7 +107,7 @@ namespace Server
             StopServer();
         }
 
-        private void Socket_MessageReceived(object sender, MessageReceivedArgs e)
+        private void Socket_MessageReceived(object sender, MessageReceivedEventArgs e)
         {
             string msg = Encoding.Default.GetString(e.RawMessage);
             Log("Client: "+ msg);

@@ -5,13 +5,13 @@ using System.Text;
 
 namespace ServerData
 {
-    public delegate void MessageReceivedEventHandler(object sender, MessageReceivedArgs e);
+    public delegate void MessageReceivedEventHandler(object sender, MessageReceivedEventArgs e);
 
-    public class MessageReceivedArgs : EventArgs
+    public class MessageReceivedEventArgs : EventArgs
     {
         public byte[] RawMessage { get; protected set; }
 
-        public MessageReceivedArgs(byte[] message)
+        public MessageReceivedEventArgs(byte[] message)
         {
             RawMessage = message;
         }
