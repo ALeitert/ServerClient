@@ -14,7 +14,7 @@ namespace Server
         private delegate void LogDelegate(string text);
 
         private Socket listenerSocket;
-        private List<CryptoConnection> clientList; // ToDo: HashTable
+        private List<SocketConnection> clientList; // ToDo: HashTable
 
         private IPAddress selectedIP;
 
@@ -32,8 +32,8 @@ namespace Server
                 if (i.AddressFamily == AddressFamily.InterNetwork)
                 {
                     selectedIP = i;
+                    break;
                 }
-                Log(i.ToString() + "  " + i.AddressFamily.ToString());
             }
 
             if (selectedIP == null)
@@ -41,13 +41,14 @@ namespace Server
                 selectedIP = IPAddress.Parse("127.0.0.1");
             }
 
+            Log("Selected IP: " + selectedIP.ToString());
         }
 
         private void btnStartServer_Click(object sender, EventArgs e)
         {
             Log("Starting Server...");
             listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientList = new List<CryptoConnection>();
+            clientList = new List<SocketConnection>();
 
             try
             {
@@ -93,13 +94,20 @@ namespace Server
         {
             if (txtLog.IsDisposed) return;
 
-            if (txtLog.InvokeRequired)
+            try
             {
-                txtLog.Invoke(new LogDelegate(Log), new object[] { text });
+                if (txtLog.InvokeRequired)
+                {
+                    txtLog.Invoke(new LogDelegate(Log), new object[] { text });
+                }
+                else
+                {
+                    txtLog.AppendText(text + Environment.NewLine);
+                }
             }
-            else
+            catch (ObjectDisposedException)
             {
-                txtLog.AppendText(text + Environment.NewLine);
+                // Do nothing.
             }
         }
 
@@ -116,7 +124,7 @@ namespace Server
 
         private void Socket_ConnectionEnded(object sender, EventArgs e)
         {
-            clientList.Remove((CryptoConnection)sender);
+            clientList.Remove((SocketConnection)sender);
             Log("Client Disconnected");
         }
 
@@ -132,7 +140,7 @@ namespace Server
                 listenerSocket.Close();
             }
 
-            foreach (CryptoConnection cc in clientList)
+            foreach (SocketConnection cc in clientList)
             {
                 if (cc != null)
                 {
