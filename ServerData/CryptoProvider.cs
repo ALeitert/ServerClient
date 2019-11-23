@@ -25,40 +25,5 @@ namespace ServerData
             var dec = managed.CreateDecryptor(key, iv);
             return dec.TransformFinalBlock(input, 0, input.Length);
         }
-
-        public static Tuple<string, string> CreateKeyPair()
-        {
-            CspParameters cspParams = new CspParameters { ProviderType = 1 };
-
-            RSACryptoServiceProvider rsaProvider = new RSACryptoServiceProvider(4096, cspParams);
-
-            string publicKey = Convert.ToBase64String(rsaProvider.ExportCspBlob(false));
-            string privateKey = Convert.ToBase64String(rsaProvider.ExportCspBlob(true));
-
-            return new Tuple<string, string>(privateKey, publicKey);
-        }
-
-        public static byte[] RsaEncrypt(byte[] publicKey, byte[] data)
-        {
-            CspParameters cspParams = new CspParameters { ProviderType = 1 };
-            RSACryptoServiceProvider rsaProvider = new RSACryptoServiceProvider(cspParams);
-
-            rsaProvider.ImportCspBlob(publicKey);
-
-            byte[] encryptedBytes = rsaProvider.Encrypt(data, false);
-
-            return encryptedBytes;
-        }
-
-        public static byte[] RsaDecrypt(byte[] privateKey, byte[] encryptedBytes)
-        {
-            CspParameters cspParams = new CspParameters { ProviderType = 1 };
-            RSACryptoServiceProvider rsaProvider = new RSACryptoServiceProvider(cspParams);
-
-            rsaProvider.ImportCspBlob(privateKey);
-
-            return rsaProvider.Decrypt(encryptedBytes, false);
-        }
-
     }
 }
