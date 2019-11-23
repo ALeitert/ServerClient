@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Threading;
 
 namespace ServerData
 {
@@ -16,6 +14,8 @@ namespace ServerData
 
         ECDiffieHellmanCng keyExchange;
         byte[] publicKey;
+
+        List<byte[]> msgBuffer = new List<byte[]>();
 
         public CryptoConnection(Socket socket, byte[] key)
             : base(socket, false)
@@ -42,12 +42,23 @@ namespace ServerData
 
         protected override void OnMessageReceived(MessageReceivedEventArgs e)
         {
-            if (aesKey == null)
+            lock (msgBuffer)
             {
-                byte[] pubKey = e.RawMessage;
-                CngKey cngKey = CngKey.Import(pubKey, CngKeyBlobFormat.EccPublicBlob);
-                aesKey = keyExchange.DeriveKeyMaterial(cngKey);
-                return;
+                if (aesKey == null)
+                {
+                    byte[] pubKey = e.RawMessage;
+                    CngKey cngKey = CngKey.Import(pubKey, CngKeyBlobFormat.EccPublicBlob);
+                    aesKey = keyExchange.DeriveKeyMaterial(cngKey);
+
+                    // Send all buffered messages.
+                    for (int i = 0; i < msgBuffer.Count; i++)
+                    {
+                        SendMessage(msgBuffer[i]);
+                    }
+                    msgBuffer.Clear();
+
+                    return;
+                }
             }
 
             // Split message into IV and actual message.
@@ -57,7 +68,6 @@ namespace ServerData
 
             Array.Copy(fullMsg, iv, iv.Length);
             Array.Copy(fullMsg, iv.Length, encMsg, 0, encMsg.Length);
-
 
             // Decrypt message.
             RijndaelManaged aes = new RijndaelManaged();
@@ -82,8 +92,17 @@ namespace ServerData
                 throw new ArgumentNullException();
             }
 
-            // Encrypt message.
+            lock (msgBuffer)
+            {
+                if (aesKey == null)
+                {
+                    // Add the message into a buffer until key exchange is done.
+                    msgBuffer.Add(msg);
+                    return false;
+                }
+            }
 
+            // Encrypt message.
             RijndaelManaged aes = new RijndaelManaged();
             aes.BlockSize = IVSize * 8;
 
@@ -97,6 +116,7 @@ namespace ServerData
             enc.Dispose();
             aes.Dispose();
 
+            // Merge IV and encrypted message.
             byte[] fullMsg = new byte[iv.Length + encMsg.Length];
             Array.Copy(iv, fullMsg, iv.Length);
             Array.Copy(encMsg, 0, fullMsg, iv.Length, encMsg.Length);
