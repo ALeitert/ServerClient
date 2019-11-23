@@ -19,6 +19,7 @@ namespace Client
 
         private CryptoConnection connection;
 
+        private bool logActive = true;
         private delegate void LogDelegate(string text);
 
         public ClientForm()
@@ -28,6 +29,8 @@ namespace Client
 
         private void Log(string text)
         {
+            if (!logActive) return;
+
             if (txtLog.InvokeRequired)
             {
                 txtLog.Invoke(new LogDelegate(Log), new object[] { text });
@@ -61,7 +64,19 @@ namespace Client
             }
 
             connection = new CryptoConnection(master, CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
+            connection.MessageReceived += Socket_MessageReceived;
+            connection.ConnectionEnded += Socket_ConnectionEnded;
+        }
 
+        private void Socket_MessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            string msg = Encoding.Default.GetString(e.RawMessage);
+            Log("Server: " + msg);
+        }
+
+        private void Socket_ConnectionEnded(object sender, EventArgs e)
+        {
+            Log("Server Disconnected.");
         }
 
         private void btnSend_Click(object sender, EventArgs e)
@@ -91,6 +106,7 @@ namespace Client
 
         private void ClientForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            logActive = false;
             if (connection != null)
             {
                 connection.Close();

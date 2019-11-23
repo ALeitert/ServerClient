@@ -11,6 +11,7 @@ namespace Server
 {
     public partial class MainForm : Form
     {
+        private bool logActive = true;
         private delegate void LogDelegate(string text);
 
         private Socket listenerSocket;
@@ -81,6 +82,7 @@ namespace Server
                     sc.ConnectionEnded += Socket_ConnectionEnded;
                     clientList.Add(sc);
                     Log("Client connected.");
+                    sc.SendMessage(Encoding.Default.GetBytes("Hallo, ich bin der Server."));
                 }
                 catch (SocketException)
                 {
@@ -92,22 +94,15 @@ namespace Server
 
         private void Log(string text)
         {
-            if (txtLog.IsDisposed) return;
+            if (!logActive) return;
 
-            try
+            if (txtLog.InvokeRequired)
             {
-                if (txtLog.InvokeRequired)
-                {
-                    txtLog.Invoke(new LogDelegate(Log), new object[] { text });
-                }
-                else
-                {
-                    txtLog.AppendText(text + Environment.NewLine);
-                }
+                txtLog.Invoke(new LogDelegate(Log), new object[] { text });
             }
-            catch (ObjectDisposedException)
+            else
             {
-                // Do nothing.
+                txtLog.AppendText(text + Environment.NewLine);
             }
         }
 
@@ -130,6 +125,7 @@ namespace Server
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            logActive = false;
             StopServer();
         }
 
