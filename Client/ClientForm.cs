@@ -63,7 +63,7 @@ namespace Client
                 return;
             }
 
-            connection = new CryptoConnection(master, CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
+            connection = new CryptoConnection(master);
             connection.MessageReceived += Socket_MessageReceived;
             connection.ConnectionEnded += Socket_ConnectionEnded;
         }

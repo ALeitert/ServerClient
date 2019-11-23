@@ -9,27 +9,63 @@ namespace ServerData
 {
     public class CryptoConnection : SocketConnection
     {
-        private Socket socket;
+        byte[] aesKey;
+        byte[] ivSend;
+        byte[] ivListen;
 
-        byte[] key;
-        byte[] iv;
+        ECDiffieHellmanCng keyExchange;
+        byte[] publicKey;
 
         public CryptoConnection(Socket socket, byte[] key, byte[] iv)
             : base(socket, false)
         {
-            this.key = key;
-            this.iv = iv;
+            this.aesKey = key;
+            this.ivSend = iv;
+            this.ivListen = iv;
 
             // The listening is not started directly to avoid a race condition
             // of setting the key and iv with the listener.
             StartListening();
         }
 
+        public CryptoConnection(Socket socket)
+            : base(socket, false)
+        {
+            keyExchange = new ECDiffieHellmanCng();
+            keyExchange.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
+            keyExchange.HashAlgorithm = CngAlgorithm.Sha256;
+
+            publicKey = keyExchange.PublicKey.ToByteArray();
+            base.SendMessage(publicKey);
+
+            using (RNGCryptoServiceProvider rngCsp = new RNGCryptoServiceProvider())
+            {
+                ivSend = new byte[CryptoProvider.IVSize];
+                rngCsp.GetBytes(ivSend);
+            }
+            base.SendMessage(ivSend);
+
+            StartListening();
+        }
+
         protected override void OnMessageReceived(MessageReceivedEventArgs e)
         {
-            // Decrypt message.
-            byte[] msg = CryptoProvider.DecryptData(e.RawMessage, key, iv);
-            base.OnMessageReceived(new MessageReceivedEventArgs(msg));
+            if (aesKey == null)
+            {
+                byte[] pubKey = e.RawMessage;
+                CngKey cngKey = CngKey.Import(pubKey, CngKeyBlobFormat.EccPublicBlob);
+                aesKey = keyExchange.DeriveKeyMaterial(cngKey);
+            }
+            else if (ivListen == null)
+            {
+                ivListen = e.RawMessage;
+            }
+            else
+            {
+                // Decrypt message.
+                byte[] msg = CryptoProvider.DecryptData(e.RawMessage, aesKey, ivListen);
+                base.OnMessageReceived(new MessageReceivedEventArgs(msg));
+            }
         }
 
         public override bool SendMessage(byte[] msg)
@@ -40,9 +76,8 @@ namespace ServerData
             }
 
             // Encrypt message.
-            byte[] message = CryptoProvider.EncryptData(msg, key, iv);
+            byte[] message = CryptoProvider.EncryptData(msg, aesKey, ivSend);
             return base.SendMessage(message);
         }
-
     }
 }
