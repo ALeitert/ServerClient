@@ -77,7 +77,7 @@ namespace Server
                 {
                     listenerSocket.Listen(0);
 
-                    CryptoConnection sc = new CryptoConnection(listenerSocket.Accept(), CryptoProvider.ExampleKey, CryptoProvider.ExampleIV);
+                    CryptoConnection sc = new CryptoConnection(listenerSocket.Accept());
                     sc.MessageReceived += Socket_MessageReceived;
                     sc.ConnectionEnded += Socket_ConnectionEnded;
                     clientList.Add(sc);
