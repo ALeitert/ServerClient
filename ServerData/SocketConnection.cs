@@ -8,15 +8,10 @@ namespace ServerData
     {
         private Socket socket;
 
-        private Thread listenThread;
-
         public event MessageReceivedEventHandler MessageReceived;
         public event EventHandler ConnectionEnded;
 
-        public SocketConnection(Socket socket)
-            : this(socket, true)
-        {
-        }
+        public SocketConnection(Socket socket) : this(socket, true) { }
 
         protected SocketConnection(Socket socket, bool startListening)
         {
@@ -83,7 +78,7 @@ namespace ServerData
 
         protected void StartListening()
         {
-            listenThread = new Thread(Listen);
+            Thread listenThread = new Thread(Listen);
             listenThread.Start();
         }
 
@@ -101,35 +96,48 @@ namespace ServerData
             {
                 try
                 {
-                    // Read a message-length
-                    byte[] header = new byte[4];
+                    bool isConnected = true;
 
-                    for (int bytesRead = 0; bytesRead < 4;)
+                    // Read a message-length.
+                    byte[] header = new byte[4];
+                    for (int bytesRead = 0; isConnected && bytesRead < 4;)
                     {
                         bytesRead += socket.Receive(header, bytesRead, 4 - bytesRead, SocketFlags.None);
+
+                        // Checks if socket is still connected.
+                        // Avoids ending up in an endless loop in case the connection is lost.
+                        // Do not change order! (Causes false detection of disconnect.)
+                        // See https://stackoverflow.com/a/722265.
+                        isConnected = !socket.Poll(1, SelectMode.SelectRead) || socket.Available != 0;
                     }
+
+                    if (!isConnected) break;
 
                     int msgLength = BitConverter.ToInt32(header, 0);
 
-                    // Read message
+                    // Read message.
                     byte[] message = new byte[msgLength];
-                    for (int bytesRead = 0; bytesRead < msgLength;)
+                    for (int bytesRead = 0; isConnected && bytesRead < msgLength;)
                     {
                         bytesRead += socket.Receive(message, bytesRead, msgLength - bytesRead, SocketFlags.None);
+                        isConnected = !socket.Poll(1, SelectMode.SelectRead) || socket.Available != 0;
                     }
+
+                    if (!isConnected) break;
 
                     OnMessageReceived(new MessageReceivedEventArgs(message));
                 }
                 catch (SocketException)
                 {
                     // ToDo: Handle exception.
-                    socket.Close();
-                    if (ConnectionEnded != null)
-                    {
-                        ConnectionEnded(this, new EventArgs());
-                    }
                     break;
                 }
+            }
+
+            socket.Close();
+            if (ConnectionEnded != null)
+            {
+                ConnectionEnded(this, new EventArgs());
             }
         }
 
