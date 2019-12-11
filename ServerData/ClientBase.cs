@@ -17,6 +17,28 @@ namespace ServerData
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         }
 
+        protected internal ClientBase(Socket socket)
+        {
+            Initialise(socket, true);
+        }
+
+        protected void Initialise(Socket socket, bool startListening)
+        {
+            if (socket == null)
+            {
+                throw new ArgumentNullException();
+            }
+
+            // ToDo: Verify socket.
+
+            this.socket = socket;
+
+            if (startListening)
+            {
+                StartListening();
+            }
+        }
+
         public bool IsConnected
         {
             get
@@ -113,8 +135,7 @@ namespace ServerData
                 }
             }
 
-            socket.Close();
-            ConnectionEnded?.Invoke(this, new EventArgs());
+            Close();
         }
 
         protected virtual void OnMessageReceived(MessageReceivedEventArgs e)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 
 namespace ServerData
@@ -17,7 +18,21 @@ namespace ServerData
 
         List<byte[]> msgBuffer = new List<byte[]>();
 
-        public override bool Connect(IPEndPoint ipe)
+        public CryptoClient() : base() { }
+
+        protected internal CryptoClient(Socket socket)
+        {
+            Initialise(socket, false);
+
+            if (!StartCrypto(null))
+            {
+                throw new Exception();
+            }
+
+            StartListening();
+        }
+
+        protected bool StartCrypto(IPEndPoint ipe)
         {
             keyExchange = new ECDiffieHellmanCng();
             keyExchange.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
@@ -25,8 +40,15 @@ namespace ServerData
 
             publicKey = keyExchange.PublicKey.ToByteArray();
 
-            if (!base.Connect(ipe, false)) return false;
+            if (ipe != null && !base.Connect(ipe, false)) return false;
             if (!base.SendMessage(publicKey)) return false;
+
+            return true;
+        }
+
+        public override bool Connect(IPEndPoint ipe)
+        {
+            if (!StartCrypto(ipe)) return false;
 
             StartListening();
 
