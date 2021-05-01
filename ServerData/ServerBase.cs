@@ -81,7 +81,7 @@ namespace ServerData
                     client.MessageReceived += Client_MessageReceived;
                     client.ConnectionEnded += Client_ConnectionEnded;
 
-                    ClientConnected?.Invoke(this, new ClientConnectedEventArgs(clientCounter));
+                    ClientConnected?.Invoke(this, new ClientConnectedEventArgs(client, clientCounter));
                 }
                 catch (SocketException)
                 {
@@ -104,7 +104,7 @@ namespace ServerData
             clientTable.Remove(client);
             clientFromId.Remove(clientId);
 
-            ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(clientCounter));
+            ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(client, clientCounter));
         }
 
         private void Client_MessageReceived(object sender, MessageReceivedEventArgs e)
@@ -112,7 +112,7 @@ namespace ServerData
             ClientBase client = (ClientBase)sender;
             int clientId = clientTable[client];
 
-            MessageFromClientEventArgs args = new MessageFromClientEventArgs(e.RawMessage, clientId);
+            MessageFromClientEventArgs args = new MessageFromClientEventArgs(e.RawMessage, client, clientId);
 
             MessageFromClient?.Invoke(this, args);
         }
@@ -124,19 +124,22 @@ namespace ServerData
 
     public class ClientConnectedEventArgs : EventArgs
     {
+        public ClientBase Client { get; protected set; }
         public int ClientId { get; protected set; }
 
-        public ClientConnectedEventArgs(int clientId)
+        public ClientConnectedEventArgs(ClientBase client, int clientId)
         {
+            Client = client;
             ClientId = clientId;
         }
     }
 
     public class ClientDisconnectedEventArgs : EventArgs
     {
+        public ClientBase Client { get; protected set; }
         public int ClientId { get; protected set; }
 
-        public ClientDisconnectedEventArgs(int clientId)
+        public ClientDisconnectedEventArgs(ClientBase client, int clientId)
         {
             ClientId = clientId;
         }
@@ -145,11 +148,13 @@ namespace ServerData
     public class MessageFromClientEventArgs : EventArgs
     {
         public byte[] RawMessage { get; protected set; }
+        public ClientBase Client { get; protected set; }
         public int ClientId { get; protected set; }
 
-        public MessageFromClientEventArgs(byte[] message, int clientId)
+        public MessageFromClientEventArgs(byte[] message, ClientBase client, int clientId)
         {
             RawMessage = message;
+            Client = client;
             ClientId = clientId;
         }
     }
