@@ -10,7 +10,7 @@ namespace ServerData
     {
         private Socket listenerSocket;
 
-        int clientCounter = 0;
+        int clientCounter = -1;
 
         private Dictionary<ClientBase, int> clientTable;
         private Dictionary<int, ClientBase> clientFromId;
@@ -25,6 +25,14 @@ namespace ServerData
             listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientTable = new Dictionary<ClientBase, int>();
             clientFromId = new Dictionary<int, ClientBase>();
+        }
+
+        public ClientBase this[int clientId]
+        {
+            get
+            {
+                return clientFromId[clientId];
+            }
         }
 
         public void Start(IPEndPoint ipe)
