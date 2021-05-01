@@ -1,10 +1,8 @@
 ﻿using ServerData;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace Server
@@ -14,9 +12,7 @@ namespace Server
         private bool logActive = true;
         private delegate void LogDelegate(string text);
 
-        private Socket listenerSocket;
-        private List<SocketConnection> clientList; // ToDo: HashTable
-
+        private CryptoServer server;
         private IPAddress selectedIP;
 
         public MainForm()
@@ -48,16 +44,19 @@ namespace Server
         private void btnStartServer_Click(object sender, EventArgs e)
         {
             Log("Starting Server...");
-            listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientList = new List<SocketConnection>();
+            server = new CryptoServer();
 
             try
             {
                 IPEndPoint ip = new IPEndPoint(selectedIP, 4242); // ToDo: Port
-                listenerSocket.Bind(ip);
 
-                Thread listenThread = new Thread(ListenThread);
-                listenThread.Start();
+                server.Start(ip);
+
+                server.MessageFromClient += Server_MessageFromClient;
+                server.ClientConnected += Server_ClientConnected;
+                server.ClientDisconnected += Server_ClientDisconnected;
+                server.ListenerClosed += Server_ListenerClosed;
+
                 Log("Success... Listening IP: " + selectedIP + ":4242");
             }
             catch (Exception ex)
@@ -69,27 +68,30 @@ namespace Server
 
         }
 
-        private void ListenThread()
+        private void Server_MessageFromClient(object sender, MessageFromClientEventArgs e)
         {
-            while (true)
-            {
-                try
-                {
-                    listenerSocket.Listen(0);
+            int clientId = e.ClientId;
+            string msg = Encoding.Default.GetString(e.RawMessage);
+            Log("Client " + e.ClientId.ToString() + ": " + msg);
+        }
 
-                    CryptoConnection sc = new CryptoConnection(listenerSocket.Accept());
-                    sc.MessageReceived += Socket_MessageReceived;
-                    sc.ConnectionEnded += Socket_ConnectionEnded;
-                    clientList.Add(sc);
-                    Log("Client connected.");
-                    sc.SendMessage(Encoding.Default.GetBytes("Hallo, ich bin der Server."));
-                }
-                catch (SocketException)
-                {
-                    Log("Listener closed.");
-                    return;
-                }
-            }
+        private void Server_ClientConnected(object sender, ClientConnectedEventArgs e)
+        {
+            int clientId = e.ClientId;
+            byte[] message = Encoding.Default.GetBytes("Hallo, ich bin der Server.");
+
+            server.SendMessage(clientId, message);
+            Log("Client " + e.ClientId.ToString() + " connected.");
+        }
+
+        private void Server_ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+        {
+            Log("Client " + e.ClientId.ToString() + " Disconnected");
+        }
+
+        private void Server_ListenerClosed(object sender, EventArgs e)
+        {
+            Log("Listener closed.");
         }
 
         private void Log(string text)
@@ -111,18 +113,6 @@ namespace Server
             StopServer();
         }
 
-        private void Socket_MessageReceived(object sender, MessageReceivedEventArgs e)
-        {
-            string msg = Encoding.Default.GetString(e.RawMessage);
-            Log("Client: " + msg);
-        }
-
-        private void Socket_ConnectionEnded(object sender, EventArgs e)
-        {
-            clientList.Remove((SocketConnection)sender);
-            Log("Client Disconnected");
-        }
-
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             logActive = false;
@@ -131,18 +121,7 @@ namespace Server
 
         private void StopServer()
         {
-            if (listenerSocket != null)
-            {
-                listenerSocket.Close();
-            }
-
-            foreach (SocketConnection cc in clientList)
-            {
-                if (cc != null)
-                {
-                    cc.Close();
-                }
-            }
+            server?.Stop();
         }
     }
 }

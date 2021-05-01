@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -15,9 +10,7 @@ namespace Client
 {
     public partial class ClientForm : Form
     {
-        private Socket master;
-
-        private CryptoConnection connection;
+        CryptoClient client;
 
         private bool logActive = true;
         private delegate void LogDelegate(string text);
@@ -43,29 +36,24 @@ namespace Client
 
         private void btnConnect_Click(object sender, EventArgs e)
         {
-            if (master != null)
+            if (client != null)
             {
-                master.Close();
-                master.Dispose();
+                client.Close();
             }
 
-            master = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint ipe = new IPEndPoint(IPAddress.Parse(txtIP.Text), 4242);
+            client = new CryptoClient();
+            client.MessageReceived += Socket_MessageReceived;
+            client.ConnectionEnded += Socket_ConnectionEnded;
 
-            try
+            bool connected = client.Connect(new IPEndPoint(IPAddress.Parse(txtIP.Text), 4242));
+            if (connected)
             {
-                master.Connect(ipe);
                 Log("Connected to server.");
             }
-            catch
+            else
             {
                 Log("Could not connect to server.");
-                return;
             }
-
-            connection = new CryptoConnection(master);
-            connection.MessageReceived += Socket_MessageReceived;
-            connection.ConnectionEnded += Socket_ConnectionEnded;
         }
 
         private void Socket_MessageReceived(object sender, MessageReceivedEventArgs e)
@@ -83,12 +71,12 @@ namespace Client
         {
             try
             {
-                if (connection != null)
+                if (client != null)
                 {
                     string msg = txtMsg.Text;
                     byte[] data = Encoding.Default.GetBytes(msg);
 
-                    if (!connection.SendMessage(data))
+                    if (!client.SendMessage(data))
                     {
                         Log("Unable to send message.");
                     }
@@ -107,9 +95,9 @@ namespace Client
         private void ClientForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             logActive = false;
-            if (connection != null)
+            if (client != null)
             {
-                connection.Close();
+                client.Close();
             }
         }
     }
