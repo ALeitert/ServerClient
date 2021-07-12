@@ -178,11 +178,14 @@ namespace ServerData
 
         public void Close()
         {
-            if (socket == null) return;
+            lock (this)
+            {
+                if (socket == null) return;
 
-            socket.Close();
-            ConnectionEnded?.Invoke(this, new EventArgs());
-            socket = null;
+                socket.Close();
+                ConnectionEnded?.Invoke(this, new EventArgs());
+                socket = null;
+            }
         }
 
     }
